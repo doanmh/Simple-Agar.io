@@ -56,6 +56,7 @@ var app =
 	var color = "red";
 	var borderColor = "black";
 	var screenWidth, screenHeight;
+	var gameWidth, gameHeight;
 
 	var isMouseIn = false;
 	var mouseX, mouseY;
@@ -67,15 +68,14 @@ var app =
 		id: -1,
 		x: window.innerWidth / 2,
 		y: window.innerHeight / 2,
-		screeWidth: screenWidth,
-		screenHeight: screenHeight,
+		screenWidth: window.innerWidth,
+		screenHeight: window.innerHeight,
 		target: {
-			x: window.innerWidth / 2,
-			y: window.innerHeight / 2
-		}
-	};
+			x: 0,
+			y: 0
 
-	document.onmousemove = function (event) {
+			//Set up mouse events
+		} };document.onmousemove = function (event) {
 		mouseX = event.clientX;
 		mouseY = event.clientY;
 	};
@@ -92,29 +92,50 @@ var app =
 		initFrame(cv);
 		socket = io();
 		socket.emit('respawn', player);
+		console.log(player.screenWidth + " " + player.screenHeight);
 		setupSocket(socket);
 		startGame();
 	};
 
-	var setupSocket = function setupSocket() {
+	var setupSocket = function setupSocket(socket) {
+
 		socket.on('disconnect', function () {
 			socket.close();
 		});
-		socket.on('render', function (playerData) {
-			player = playerData;
-			drawPlayer(player);
+
+		socket.on('gameSetup', function (data) {
+			gameWidth = data.gameWidth;
+			gameHeight = data.gameHeight;
 		});
-		socket.on("playerMove", function (players) {
-			players = players;
+
+		socket.on('welcome', function (playerSetting) {
+			player = playerSetting;
+		});
+
+		socket.on('updatePlayer', function (playerData) {
+			player = playerData;
+		});
+
+		socket.on('updateGame', function (playerArray) {
+			players = playerArray;
 		});
 	};
 
 	var gameLoop = function gameLoop() {
+		// console.log(player.id);
+		ctx.clearRect(0, 0, cv.width, cv.height);
+
+		for (var i = 0; i < players.length; i++) {
+			drawPlayers(players[i]);
+		}
+
 		if (isMouseIn) {
-			player.target.x = mouseX;
-			player.target.y = mouseY;
-			// TODO:
-			socket.emit("updatePlayer", player);
+			var target = {
+				x: mouseX,
+				y: mouseY
+			};
+
+			socket.emit('updatePlayerTarget', target);
 		}
 	};
 
@@ -134,13 +155,22 @@ var app =
 		animloop();
 	};
 
-	var drawPlayer = function drawPlayer(player) {
+	var drawPlayers = function drawPlayers(p) {
+		var x, y;
+		// console.log(player.x + " " + player.y);
+		if (p.id == player.id) {
+			x = screenWidth / 2;
+			y = screenHeight / 2;
+		} else {
+			x = p.x - player.x + screenWidth / 2;
+			y = p.y - player.y + screenHeight / 2;
+		}
 		ctx.fillStyle = color;
 		ctx.strokeStyle = borderColor;
 		ctx.lineWidth = 5;
 
 		ctx.beginPath();
-		ctx.arc(screenWidth / 2, screenHeight / 2, player.radius, 0, 2 * Math.PI, false);
+		ctx.arc(x, y, player.radius, 0, 2 * Math.PI, false);
 		ctx.fill();
 		ctx.stroke();
 	};
