@@ -92,7 +92,6 @@ var app =
 		initFrame(cv);
 		socket = io();
 		socket.emit('respawn', player);
-		console.log(player.screenWidth + " " + player.screenHeight);
 		setupSocket(socket);
 		startGame();
 	};
@@ -112,31 +111,45 @@ var app =
 			player = playerSetting;
 		});
 
-		socket.on('updatePlayer', function (playerData) {
-			player = playerData;
-		});
-
 		socket.on('updateGame', function (playerArray) {
 			players = playerArray;
+			for (var i = 0; i < playerArray.length; i++) {
+				if (player.id == playerArray[i].id) {
+					player = playerArray[i];
+					i = playerArray.length;
+				}
+			}
 		});
 	};
 
 	var gameLoop = function gameLoop() {
-		// console.log(player.id);
+		var target = {};
+
 		ctx.clearRect(0, 0, cv.width, cv.height);
 
+		drawGrid();
+
 		for (var i = 0; i < players.length; i++) {
-			drawPlayers(players[i]);
+			if (player.id !== players[i].id) {
+				drawPlayers(players[i]);
+			}
 		}
 
+		drawPlayers(player);
+
 		if (isMouseIn) {
-			var target = {
+			target = {
 				x: mouseX,
 				y: mouseY
 			};
-
-			socket.emit('updatePlayerTarget', target);
+		} else {
+			target = {
+				x: screenWidth / 2,
+				y: screenHeight / 2
+			};
 		}
+
+		socket.emit('updatePlayerTarget', target);
 	};
 
 	window.requestAnimFrame = function () {
@@ -157,7 +170,6 @@ var app =
 
 	var drawPlayers = function drawPlayers(p) {
 		var x, y;
-		// console.log(player.x + " " + player.y);
 		if (p.id == player.id) {
 			x = screenWidth / 2;
 			y = screenHeight / 2;
@@ -173,6 +185,38 @@ var app =
 		ctx.arc(x, y, player.radius, 0, 2 * Math.PI, false);
 		ctx.fill();
 		ctx.stroke();
+	};
+
+	var drawGrid = function drawGrid() {
+		var start = Math.floor((player.x - screenWidth / 2) / 40);
+		var relX = start * 40 - player.x + screenWidth / 2;
+
+		var numLines = screenWidth / 40;
+
+		ctx.fillStyle = '#FFFFFF';
+		ctx.strokeStyle = '#BFBFBF';
+		ctx.lineWidth = 1;
+
+		ctx.fillRect(0, 0, screenWidth, screenHeight);
+
+		for (var i = 0; i < numLines; i++) {
+			ctx.beginPath();
+			ctx.moveTo(relX + 40 * i, 0);
+			ctx.lineTo(relX + 40 * i, screenHeight);
+			ctx.stroke();
+		}
+
+		start = Math.floor((player.y - screenHeight / 2) / 40);
+		var relY = start * 40 - player.y + screenHeight / 2;
+
+		numLines = screenHeight / 40;
+
+		for (var i = 0; i < numLines; i++) {
+			ctx.beginPath();
+			ctx.moveTo(0, relY + 40 * i);
+			ctx.lineTo(screenWidth, relY + 40 * i);
+			ctx.stroke();
+		}
 	};
 
 	var initFrame = function initFrame(canvas) {

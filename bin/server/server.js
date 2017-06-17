@@ -5,7 +5,7 @@ var io = require('socket.io')(http);
 
 app.use(express.static(__dirname + '/../client'));
 
-var gameWidth = gameHeight = 100;
+var gameWidth = gameHeight = 800;
 
 var players = [];
 var sockets = {};
@@ -25,6 +25,8 @@ io.on('connection', function(socket) {
             y:0
         }
     }
+
+    // console.log(currentPlayer.x + " " + currentPlayer.y);
 
     socket.on('disconnect', function() {
         var index = players.indexOf(currentPlayer);
@@ -85,6 +87,9 @@ var movePlayer = function(player) {
             player.y += ydiff;
         }
     }
+
+    // console.log(player.x + " " + player.y);
+
     sockets[player.id].emit('updatePlayer', player);
 }
 
