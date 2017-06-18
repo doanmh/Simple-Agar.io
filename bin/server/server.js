@@ -8,6 +8,7 @@ app.use(express.static(__dirname + '/../client'));
 var gameWidth = gameHeight = 800;
 
 var players = [];
+var food = [];
 var sockets = {};
 
 var velocity = 5;
@@ -26,7 +27,7 @@ io.on('connection', function(socket) {
         }
     }
 
-    // console.log(currentPlayer.x + " " + currentPlayer.y);
+    console.log(currentPlayer.x + " " + currentPlayer.y);
 
     socket.on('disconnect', function() {
         var index = players.indexOf(currentPlayer);
@@ -93,6 +94,17 @@ var movePlayer = function(player) {
     sockets[player.id].emit('updatePlayer', player);
 }
 
+var balanceFood = function() {
+    var foodToAdd = 15;
+    for (var i = 0; i < foodToAdd; i++) {
+        food.push({
+            x: Math.floor((Math.random() * gameWidth) + 1),
+            y: Math.floor((Math.random() * gameHeight) + 1), 
+            radius: 10
+        });
+    }
+}
+
 var moveLoop = function() {
     for (var i = 0; i < players.length; i++) {
         movePlayer(players[i]);
@@ -102,10 +114,11 @@ var moveLoop = function() {
 
 var sendUpdates = function() {
     for (var i = 0; i < players.length; i++) {
-        sockets[players[i].id].emit("updateGame", players);
+        sockets[players[i].id].emit("updateGame", players, food);
     }
 }
 
+balanceFood();
 setInterval(moveLoop, 1000/60);
 setInterval(sendUpdates, 1000/40);
 

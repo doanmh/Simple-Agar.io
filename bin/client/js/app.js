@@ -63,6 +63,7 @@ var app =
 	var socket;
 
 	var players = [];
+	var food = [];
 
 	var player = {
 		id: -1,
@@ -111,7 +112,7 @@ var app =
 			player = playerSetting;
 		});
 
-		socket.on('updateGame', function (playerArray) {
+		socket.on('updateGame', function (playerArray, foodArray) {
 			players = playerArray;
 			for (var i = 0; i < playerArray.length; i++) {
 				if (player.id == playerArray[i].id) {
@@ -119,6 +120,7 @@ var app =
 					i = playerArray.length;
 				}
 			}
+			food = foodArray;
 		});
 	};
 
@@ -129,13 +131,17 @@ var app =
 
 		drawGrid();
 
+		for (var i = 0; i < food.length; i++) {
+			drawEntities(food[i]);
+		}
+
 		for (var i = 0; i < players.length; i++) {
 			if (player.id !== players[i].id) {
-				drawPlayers(players[i]);
+				drawEntities(players[i]);
 			}
 		}
 
-		drawPlayers(player);
+		drawEntities(player);
 
 		if (isMouseIn) {
 			target = {
@@ -168,7 +174,7 @@ var app =
 		animloop();
 	};
 
-	var drawPlayers = function drawPlayers(p) {
+	var drawEntities = function drawEntities(p) {
 		var x, y;
 		if (p.id == player.id) {
 			x = screenWidth / 2;
@@ -177,12 +183,13 @@ var app =
 			x = p.x - player.x + screenWidth / 2;
 			y = p.y - player.y + screenHeight / 2;
 		}
+
 		ctx.fillStyle = color;
 		ctx.strokeStyle = borderColor;
 		ctx.lineWidth = 5;
 
 		ctx.beginPath();
-		ctx.arc(x, y, player.radius, 0, 2 * Math.PI, false);
+		ctx.arc(x, y, p.radius, 0, 2 * Math.PI, false);
 		ctx.fill();
 		ctx.stroke();
 	};
