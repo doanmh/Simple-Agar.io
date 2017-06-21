@@ -2,7 +2,7 @@ var express = require('express');
 var app = express();
 var http = require('http').createServer(app);
 var io = require('socket.io')(http);
-var QuadTree = require('./quadtree.js');
+var QuadTree = require('simple-quadtree');
 var SAT = require('sat');
 
 app.use(express.static(__dirname + '/../client'));
@@ -13,12 +13,12 @@ var players = [];
 var food = [];
 var sockets = {};
 
-var velocity = 5;
+var velocity = 1;
 
 var V = SAT.Vector;
 var C = SAT.Circle;
 
-var tree = QuadTree(0, {x: 0, y: 0, width: gameWidth, height: gameHeight});
+var tree = QuadTree(0, 0, gameWidth, gameHeight);
 
 // Setup Sockets
 io.on('connection', function(socket) {
@@ -29,6 +29,7 @@ io.on('connection', function(socket) {
         x: Math.floor((Math.random() * gameWidth) + 1),
         y: Math.floor((Math.random() * gameHeight) + 1),
         radius: 30,
+        mass: 0,
         target: {
             x:0,
             y:0
@@ -89,11 +90,31 @@ var updateLoop = function() {
 var updatePlayer = function(player) {
     movePlayer(player);
 
-    tree.clear();
-    players.forEach(tree.insert);
+    // tree.clear();
+    // players.forEach(tree.insert);
+
+    var playerCircle = new C(new V(player.x, player.y), player.radius);
 
     for (var i = 0; i < food.length; i++) {
-        funcFood(food[i], player);
+        var f = food[i];
+        if (SAT.pointInCircle(new V(f.x, f.y), playerCircle)) {
+            player.mass++;
+            food.splice(i, 1);
+        }
+    }
+
+    for (var i = 0; i < players.length; i++) {
+        var other = players[i];
+        if (other !== player) {
+            var collided = SAT.testCircleCircle(playerCircle, new C(new V(other.x, other.y), other.radius));
+            if (collided) {
+                if (player.mass >= 1.1*other.mass) {
+                    sockets[other.id].emit('disconnect');
+                } else if (other.mass >= 1.1*player.mass) {
+                    sockets[player.id].emit('disconnect');
+                }
+            } 
+        }
     }
 }
 
@@ -129,23 +150,6 @@ var movePlayer = function(player) {
 }
 
 // Helper function
-var funcFood = function(f, player) {
-    var playerCircle = new C(new V(player.x, player.y), player.radius);
-    if (SAT.pointInCircle(new V(f.x, f.y), playerCircle)) {
-        player.radius++;
-        removeFood(f);
-    }
-}
-
-var removeFood = function(f) {
-    for (var i = 0; i < food.length; i++) {
-        if (f === food[i]) {
-            food.splice(i, 1);
-            return;
-        }
-    }
-}
-
 var balanceFood = function() {
     var foodToAdd = 15 - food.length;
     for (var i = 0; i < foodToAdd; i++) {
