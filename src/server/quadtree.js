@@ -27,7 +27,7 @@ function QuadTree (lvl, boundaries) {
         var topHalf = obj.y + obj.radius < yMid && obj.y - obj.radius > bound.y;
         var bottomHalf = obj.y + obj.radius  < bound.y + bound.height && obj.y - obj.radius > yMid;      
         var leftHalf = obj.x + obj.radius < xMid && obj.x - obj.radius > bound.x;
-        var rightHalf = obj.x + obj.radius < bound.x + bound.height && obj.x - obj.radius > xMid;
+        var rightHalf = obj.x + obj.radius < bound.x + bound.width && obj.x - obj.radius > xMid;
 
         if (topHalf && rightHalf) {
             return 0;
@@ -46,7 +46,7 @@ function QuadTree (lvl, boundaries) {
         var index = getIndex(obj);
         var i = 0;
         
-        if (nodes[0] && index != -1) {
+        if (nodes[0] && index !== -1) {
             nodes[index].insert(obj);
             return;
         }
@@ -61,6 +61,8 @@ function QuadTree (lvl, boundaries) {
             }
 
             while (i < objects.length) {
+                index = getIndex(objects[i]);
+
                 if (index !== -1) {
                     nodes[index].insert(objects[i]);
                     objects.splice(i, 1);
@@ -72,8 +74,8 @@ function QuadTree (lvl, boundaries) {
     }
 
     var retrieve = function(list, obj) {
-        if (obj.x + obj.radius < bound.x + bound.width && obj.x - obj.radius > bound.x
-            && obj.y + obj.radius < bound.y + bound.height && obj.y - obj.radius > bound.y) {
+        if (obj.x - obj.radius < bound.x + bound.width && obj.x + obj.radius > bound.x
+            && obj.y - obj.radius < bound.y + bound.height && obj.y + obj.radius > bound.y) {
 
             for (var o in objects) {
                 if (objects[o] !== obj) {

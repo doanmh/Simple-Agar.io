@@ -2,7 +2,7 @@ var express = require('express');
 var app = express();
 var http = require('http').createServer(app);
 var io = require('socket.io')(http);
-var QuadTree = require('simple-quadtree');
+var QuadTree = require('./quadtree.js');
 var SAT = require('sat');
 
 app.use(express.static(__dirname + '/../client'));
@@ -13,12 +13,12 @@ var players = [];
 var food = [];
 var sockets = {};
 
-var velocity = 1;
+var velocity = 5;
 
 var V = SAT.Vector;
 var C = SAT.Circle;
 
-var tree = QuadTree(0, 0, gameWidth, gameHeight);
+var tree = QuadTree(0, {x: 0, y: 0, width: gameWidth, height: gameHeight});
 
 // Setup Sockets
 io.on('connection', function(socket) {
@@ -30,6 +30,7 @@ io.on('connection', function(socket) {
         y: Math.floor((Math.random() * gameHeight) + 1),
         radius: 30,
         mass: 0,
+        slowdown: 0,
         target: {
             x:0,
             y:0
@@ -89,28 +90,40 @@ var updateLoop = function() {
 // Core functions
 var updatePlayer = function(player) {
     movePlayer(player);
-
-    // tree.clear();
-    // players.forEach(tree.insert);
-
+    
     var playerCircle = new C(new V(player.x, player.y), player.radius);
 
     for (var i = 0; i < food.length; i++) {
         var f = food[i];
         if (SAT.pointInCircle(new V(f.x, f.y), playerCircle)) {
             player.mass++;
+            player.radius += 0.5;
+            player.slowdown = 0.02 * player.mass;
             food.splice(i, 1);
         }
     }
 
-    for (var i = 0; i < players.length; i++) {
-        var other = players[i];
+    tree.clear();
+    players.forEach(tree.insert);
+
+    var playerCollisions = [];
+
+    playerCollisions = tree.retrieve([], player);
+
+    for (var i = 0; i < playerCollisions.length; i++) {
+        var other = playerCollisions[i];
         if (other !== player) {
             var collided = SAT.testCircleCircle(playerCircle, new C(new V(other.x, other.y), other.radius));
             if (collided) {
                 if (player.mass >= 1.1*other.mass) {
+                    player.mass += other.mass;
+                    player.radius += 0.5*other.mass;
+                    player.slowdown = 0.02 * player.mass;
                     sockets[other.id].emit('disconnect');
                 } else if (other.mass >= 1.1*player.mass) {
+                    other.mass += player.mass;
+                    other.radius += 0.5*player.mass;
+                    other.slowdown = 0.02 * other.mass;
                     sockets[player.id].emit('disconnect');
                 }
             } 
@@ -128,8 +141,8 @@ var movePlayer = function(player) {
         xdiff = 0;
         ydiff = 0;
     } else {
-        xdiff = velocity * Math.cos(deg);
-        ydiff = velocity * Math.sin(deg);
+        xdiff = (velocity - player.slowdown) * Math.cos(deg);
+        ydiff = (velocity - player.slowdown) * Math.sin(deg);
     }
     
     if (!isNaN(xdiff)) {
