@@ -89,12 +89,21 @@ var app =
 		isMouseIn = false;
 	};
 
+	// Setup window
 	window.onload = function () {
 		initFrame(cv);
 		socket = io();
 		socket.emit('respawn', player);
 		setupSocket(socket);
 		startGame();
+	};
+
+	window.onresize = function () {
+		initFrame(cv);
+		socket.emit('resize', {
+			screenWidth: screenWidth,
+			screenHeight: screenHeight
+		});
 	};
 
 	var setupSocket = function setupSocket(socket) {
