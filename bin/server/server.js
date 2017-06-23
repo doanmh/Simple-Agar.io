@@ -2,16 +2,17 @@ var express = require('express');
 var app = express();
 var http = require('http').createServer(app);
 var io = require('socket.io')(http);
-var QuadTree = require('./quadtree.js');
+var QuadTree = require('./lib/quadtree.js');
 var SAT = require('sat');
-var util = require('./util.js')();
+var util = require('./lib/util.js')();
 
 app.use(express.static(__dirname + '/../client'));
 
-var gameWidth = gameHeight = 800;
+var gameWidth = gameHeight = 5000;
 
 var players = [];
 var food = [];
+var foodToRender = [];
 var sockets = {};
 
 var V = SAT.Vector;
@@ -19,6 +20,7 @@ var C = SAT.Circle;
 var GOLDEN = 0.618033988749895;
 
 var tree = QuadTree(0, {x: 0, y: 0, width: gameWidth, height: gameHeight});
+var foodTree = QuadTree(0, {x: 0, y: 0, width: gameWidth, height: gameHeight});
 
 // Setup Sockets
 io.on('connection', function(socket) {
@@ -87,7 +89,7 @@ var moveLoop = function() {
 
 var updateLoop = function() {
     for (var i = 0; i < players.length; i++) {
-        sockets[players[i].id].emit("updateGame", players, food);
+        sockets[players[i].id].emit("updateGame", players, foodToRender);
     }
 }
 
@@ -98,12 +100,23 @@ var updatePlayer = function(player) {
     
     var playerCircle = new C(new V(player.x, player.y), player.radius);
 
-    for (var i = 0; i < food.length; i++) {
-        var f = food[i];
+    foodTree.clear();
+    food.forEach(foodTree.insert);
+
+    var camera = {
+        x: player.x,
+        y: player.y,
+        radius: player.screenWidth > player.screenHeight ? player.screenWidth/2 : player.screenHeight/2
+    }
+
+    foodToRender = foodTree.retrieve([], camera);
+
+    for (var i = 0; i < foodToRender.length; i++) {
+        var f = foodToRender[i];
         if (SAT.pointInCircle(new V(f.x, f.y), playerCircle)) {
             player.mass++;
             player.radius += 0.5;
-            food.splice(i, 1);
+            food.splice(food.indexOf(f), 1);
         }
     }
 
@@ -171,7 +184,7 @@ var movePlayer = function(player) {
 
 // Helper function
 var balanceFood = function() {
-    var foodToAdd = 15 - food.length;
+    var foodToAdd = 15000 - food.length;
     for (var i = 0; i < foodToAdd; i++) {
         food.push({
             x: Math.floor((Math.random() * gameWidth) + 1),
