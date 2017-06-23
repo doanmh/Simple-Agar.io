@@ -16,6 +16,7 @@ var sockets = {};
 
 var V = SAT.Vector;
 var C = SAT.Circle;
+var GOLDEN = 0.618033988749895;
 
 var tree = QuadTree(0, {x: 0, y: 0, width: gameWidth, height: gameHeight});
 
@@ -29,6 +30,7 @@ io.on('connection', function(socket) {
         y: Math.floor((Math.random() * gameHeight) + 1),
         radius: 20,
         mass: 10,
+        hue: Math.round(util.randGolden()*360),
         speed: 6,
         target: {
             x:0,
@@ -138,10 +140,13 @@ var movePlayer = function(player) {
     var deg = Math.atan2(targetY, targetX);
     var slowdown = util.log(player.mass, 5) - util.log(10, 5) + 1;
     
-    if (Math.abs(targetX) <= 20 && Math.abs(targetY) <= 20) {
+    if (Math.abs(targetX) == 0 && Math.abs(targetY) ==0) {
+        xdiff = 0;
+        ydiff = 0;
+    } else if (Math.abs(targetX) <= player.radius && Math.abs(targetY) <= player.radius) {
         // if mouse inside player then slow down
-        xdiff = player.speed * Math.cos(deg)/(slowdown*1.1*Math.abs(targetX)/20);
-        ydiff = player.speed * Math.sin(deg)/(slowdown*1.1*Math.abs(targetY)/20);
+        xdiff = player.speed * Math.cos(deg)/slowdown*1.1*Math.abs(targetX)/player.radius;
+        ydiff = player.speed * Math.sin(deg)/slowdown*1.1*Math.abs(targetY)/player.radius;
     } else {
         xdiff = player.speed * Math.cos(deg)/slowdown;
         ydiff = player.speed * Math.sin(deg)/slowdown;
@@ -171,7 +176,8 @@ var balanceFood = function() {
         food.push({
             x: Math.floor((Math.random() * gameWidth) + 1),
             y: Math.floor((Math.random() * gameHeight) + 1), 
-            radius: 7
+            radius: 7,
+            hue: Math.round(util.randGolden()*360)
         });
     }
 }

@@ -148,9 +148,9 @@ var drawEntities = function(p) {
         y = p.y - player.y + screenHeight/2;
     }
 
-    ctx.fillStyle = color;
-	ctx.strokeStyle = borderColor;
-	ctx.lineWidth = 5;
+    ctx.fillStyle = 'hsl(' + p.hue + ', 100%, 45%)';
+	ctx.strokeStyle = 'hsl(' + p.hue + ', 100%, 50%)';
+	ctx.lineWidth = 3;
 		
 	ctx.beginPath();
 	ctx.arc(x, y, p.radius, 0, 2 * Math.PI, false);
