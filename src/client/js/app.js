@@ -1,5 +1,7 @@
 var io = require('socket.io-client');
 
+var Player = require('../../models/player.js');
+
 var cv = document.getElementById("canvas1");
 var ctx = cv.getContext("2d");
 var color = "red";
@@ -14,17 +16,7 @@ var socket;
 var players = [];
 var food = [];
 
-var player = {
-    id: -1,
-    x: window.innerWidth/2,
-    y: window.innerHeight/2,
-    screenWidth: window.innerWidth,
-    screenHeight: window.innerHeight,
-    target: {
-        x: 0,
-        y: 0
-    }
-}
+var player = new Player(-1, 0, 0, 20, 10, false, window.innerWidth, window.innerHeight, {x: 0, y: 0});
 
 //Set up mouse events
 document.onmousemove = function(event) {
@@ -72,16 +64,14 @@ var setupSocket = function(socket) {
         player = playerSetting;
     });
 
-    socket.on('updateGame', function(playerArray, foodArray) {
+    socket.on('updatePlayer', function(playerArray, currentPlayer) {
         players = playerArray;
-        for (var i = 0; i < playerArray.length; i++) {
-            if (player.id == playerArray[i].id) {
-                player = playerArray[i];
-                i = playerArray.length;
-            }
-        }
+        player = currentPlayer;
+    })
+
+    socket.on('updateFood', function(foodArray) {
         food = foodArray;
-    });
+    })
 }
 
 var gameLoop = function() {

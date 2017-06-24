@@ -2,17 +2,21 @@ var express = require('express');
 var app = express();
 var http = require('http').createServer(app);
 var io = require('socket.io')(http);
-var QuadTree = require('./lib/quadtree.js');
 var SAT = require('sat');
-var util = require('./lib/util.js')();
+
+var QuadTree = require('../lib/quadtree.js');
+var config = require('../config/config.js');
+var Player = require('../models/player.js');
+var Food = require('../models/food.js');
+var util = require('../lib/util.js')();
 
 app.use(express.static(__dirname + '/../client'));
 
-var gameWidth = gameHeight = 5000;
+var gameWidth = config.gameWidth;
+var gameHeight = config.gameHeight
 
 var players = [];
 var food = [];
-var foodToRender = [];
 var sockets = {};
 
 var V = SAT.Vector;
@@ -26,19 +30,21 @@ var foodTree = QuadTree(0, {x: 0, y: 0, width: gameWidth, height: gameHeight});
 io.on('connection', function(socket) {
     console.log("A user connected!");
     
-    var currentPlayer = {
-        id: socket.id,
-        x: Math.floor((Math.random() * gameWidth) + 1),
-        y: Math.floor((Math.random() * gameHeight) + 1),
-        radius: 20,
-        mass: 10,
-        hue: Math.round(util.randGolden()*360),
-        speed: 6,
-        target: {
-            x:0,
-            y:0
-        }
-    }
+    // var currentPlayer = {
+    //     id: socket.id,
+    //     x: Math.floor((Math.random() * gameWidth) + 1),
+    //     y: Math.floor((Math.random() * gameHeight) + 1),
+    //     radius: 20,
+    //     mass: 10,
+    //     hue: Math.round(util.randGolden()*360),
+    //     speed: 6,
+    //     target: {
+    //         x:0,
+    //         y:0
+    //     }
+    // }
+
+    var currentPlayer = new Player(socket.id, 0, 0, 20, 10, true, 0, 0, {x: 0, y: 0});
 
     console.log(currentPlayer.x + " " + currentPlayer.y);
 
@@ -81,18 +87,11 @@ var gameLoop = function() {
     balanceFood();
 }
 
-var moveLoop = function() {
+var updateLoop = function() {
     for (var i = 0; i < players.length; i++) {
         updatePlayer(players[i]);
     }
 }
-
-var updateLoop = function() {
-    for (var i = 0; i < players.length; i++) {
-        sockets[players[i].id].emit("updateGame", players, foodToRender);
-    }
-}
-
 
 // Core functions
 var updatePlayer = function(player) {
@@ -109,6 +108,7 @@ var updatePlayer = function(player) {
         radius: player.screenWidth > player.screenHeight ? player.screenWidth/2 : player.screenHeight/2
     }
 
+    var foodToRender = [];
     foodToRender = foodTree.retrieve([], camera);
 
     for (var i = 0; i < foodToRender.length; i++) {
@@ -120,6 +120,8 @@ var updatePlayer = function(player) {
         }
     }
 
+    sockets[player.id].emit('updateFood', foodToRender);
+    
     tree.clear();
     players.forEach(tree.insert);
 
@@ -144,6 +146,8 @@ var updatePlayer = function(player) {
             } 
         }
     }
+
+    sockets[player.id].emit('updatePlayer', players, player);
 }
 
 var movePlayer = function(player) {
@@ -184,21 +188,15 @@ var movePlayer = function(player) {
 
 // Helper function
 var balanceFood = function() {
-    var foodToAdd = 15000 - food.length;
+    var foodToAdd = 100 - food.length;
     for (var i = 0; i < foodToAdd; i++) {
-        food.push({
-            x: Math.floor((Math.random() * gameWidth) + 1),
-            y: Math.floor((Math.random() * gameHeight) + 1), 
-            radius: 7,
-            hue: Math.round(util.randGolden()*360)
-        });
+        food.push(new Food(0, 0, 7, 1, true));
     }
 }
 
 // Set interval
 setInterval(gameLoop, 1000);
-setInterval(moveLoop, 1000/60);
-setInterval(updateLoop, 1000/40);
+setInterval(updateLoop, 1000/60);
 
 // IP and Port configuration
 var host = process.env.IP || "0.0.0.0";

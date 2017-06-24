@@ -1,5 +1,11 @@
 var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; };
 
+function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+
+function _possibleConstructorReturn(self, call) { if (!self) { throw new ReferenceError("this hasn't been initialised - super() hasn't been called"); } return call && (typeof call === "object" || typeof call === "function") ? call : self; }
+
+function _inherits(subClass, superClass) { if (typeof superClass !== "function" && superClass !== null) { throw new TypeError("Super expression must either be null or a function, not " + typeof superClass); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, enumerable: false, writable: true, configurable: true } }); if (superClass) Object.setPrototypeOf ? Object.setPrototypeOf(subClass, superClass) : subClass.__proto__ = superClass; }
+
 var app =
 /******/function (modules) {
 	// webpackBootstrap
@@ -51,6 +57,8 @@ var app =
 
 	var io = __webpack_require__(1);
 
+	var Player = __webpack_require__(55);
+
 	var cv = document.getElementById("canvas1");
 	var ctx = cv.getContext("2d");
 	var color = "red";
@@ -65,18 +73,10 @@ var app =
 	var players = [];
 	var food = [];
 
-	var player = {
-		id: -1,
-		x: window.innerWidth / 2,
-		y: window.innerHeight / 2,
-		screenWidth: window.innerWidth,
-		screenHeight: window.innerHeight,
-		target: {
-			x: 0,
-			y: 0
+	var player = new Player(-1, 0, 0, 20, 10, false, window.innerWidth, window.innerHeight, { x: 0, y: 0 });
 
-			//Set up mouse events
-		} };document.onmousemove = function (event) {
+	//Set up mouse events
+	document.onmousemove = function (event) {
 		mouseX = event.clientX;
 		mouseY = event.clientY;
 	};
@@ -121,14 +121,12 @@ var app =
 			player = playerSetting;
 		});
 
-		socket.on('updateGame', function (playerArray, foodArray) {
+		socket.on('updatePlayer', function (playerArray, currentPlayer) {
 			players = playerArray;
-			for (var i = 0; i < playerArray.length; i++) {
-				if (player.id == playerArray[i].id) {
-					player = playerArray[i];
-					i = playerArray.length;
-				}
-			}
+			player = currentPlayer;
+		});
+
+		socket.on('updateFood', function (foodArray) {
 			food = foodArray;
 		});
 	};
@@ -9076,6 +9074,97 @@ var app =
 	Backoff.prototype.setJitter = function (jitter) {
 		this.jitter = jitter;
 	};
+
+	/***/
+},
+/* 55 */
+/***/function (module, exports, __webpack_require__) {
+
+	'use strict';
+
+	var Entity = __webpack_require__(56);
+	var config = __webpack_require__(57);
+
+	var Player = function (_Entity) {
+		_inherits(Player, _Entity);
+
+		function Player(id, x, y, radius, mass, randomPosition, screenWidth, screenHeight, target) {
+			_classCallCheck(this, Player);
+
+			var _this = _possibleConstructorReturn(this, (Player.__proto__ || Object.getPrototypeOf(Player)).call(this, x, y, radius, randomPosition));
+
+			_this.id = id;
+			_this.mass = mass;
+			_this.speed = config.playerBaseSpeed;
+			_this.screenWidth = screenWidth;
+			_this.screenHeight = screenHeight;
+			_this.target = target;
+			return _this;
+		}
+
+		return Player;
+	}(Entity);
+
+	module.exports = Player;
+
+	/***/
+},
+/* 56 */
+/***/function (module, exports, __webpack_require__) {
+
+	'use strict';
+
+	var config = __webpack_require__(57);
+	var util = __webpack_require__(58)();
+
+	var Entity = function Entity(x, y, radius, randomPosition) {
+		_classCallCheck(this, Entity);
+
+		if (!randomPosition) {
+			this.x = x;
+			this.y = y;
+		} else {
+			this.x = Math.floor(Math.random() * config.gameWidth + 1);
+			this.y = Math.floor(Math.random() * config.gameHeight + 1);
+		}
+		this.hue = Math.round(util.randGolden() * 360);
+		this.radius = radius;
+	};
+
+	module.exports = Entity;
+
+	/***/
+},
+/* 57 */
+/***/function (module, exports) {
+
+	var config = {
+		"gameWidth": 5000,
+		"gameHeight": 5000,
+		"playerBaseSpeed": 6
+	};
+
+	module.exports = config;
+
+	/***/
+},
+/* 58 */
+/***/function (module, exports) {
+
+	function util() {
+		var GOLDEN = 0.618033988749895;
+		return {
+			log: function log(n, base) {
+				var log = Math.log;
+				return log(n) / (base ? log(base) : 1);
+			},
+			randGolden: function randGolden() {
+				return (Math.random() + GOLDEN) % 1;
+			}
+		};
+	};
+
+	module.exports = util;
 
 	/***/
 }]);

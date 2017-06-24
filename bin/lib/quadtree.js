@@ -1,6 +1,8 @@
+var Player = require('../models/player.js');
+var Food = require('../models/food.js');
+
 function QuadTree (lvl, boundaries) {
-    var MAX_OBJECTS = 5;
-    var MAX_LEVELS = 5;
+    var MAX_OBJECTS = 25;
     var level = lvl;
     var bound = boundaries;
     var objects = [];
@@ -52,11 +54,9 @@ function QuadTree (lvl, boundaries) {
         }
 
         objects.push(obj);
-        // console.log(objects.length);
 
-        if (objects.length > MAX_OBJECTS && level < MAX_LEVELS) {
+        if (objects.length > MAX_OBJECTS) {
             if (!nodes[0]) {
-                // console.log("split")
                 split();
             }
 
