@@ -84,7 +84,7 @@ var updatePlayer = function(player) {
     movePlayer(player);
     
     var playerCircle = new C(new V(player.x, player.y), player.radius);
-    var camera = new Entity(player.x, player.y, player.screenWidth > player.screenHeight ? player.screenWidth/2 : player.screenHeight/2);
+    var camera = new Entity(player.x, player.y, player.screenWidth > player.screenHeight ? player.screenWidth/2 : player.screenHeight/2, false);
 
     tree.clear();
     food.forEach(tree.insert);

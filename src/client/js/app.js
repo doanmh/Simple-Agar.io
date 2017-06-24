@@ -184,7 +184,7 @@ var initFrame = function(canvas) {
     canvas.style.width = "100%";
     canvas.style.height = "100%";
     canvas.width  = canvas.offsetWidth;
-	canvas.height = canvas.offsetHeight;
+    canvas.height = canvas.offsetHeight;
     screenWidth = ctx.canvas.width;
     screenHeight = ctx.canvas.height;
 }

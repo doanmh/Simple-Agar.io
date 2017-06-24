@@ -109,10 +109,10 @@ function QuadTree (lvl, boundaries) {
             }
 
             if (nodes.length) {
-                nodes[0].retrieve2(foodArr, playerArr, obj);
-                nodes[1].retrieve2(foodArr, playerArr, obj);
-                nodes[2].retrieve2(foodArr, playerArr, obj);
-                nodes[3].retrieve2(foodArr, playerArr, obj);
+                nodes[0].retrieveFoodAndPlayer(foodArr, playerArr, obj);
+                nodes[1].retrieveFoodAndPlayer(foodArr, playerArr, obj);
+                nodes[2].retrieveFoodAndPlayer(foodArr, playerArr, obj);
+                nodes[3].retrieveFoodAndPlayer(foodArr, playerArr, obj);
             }
         }
 
