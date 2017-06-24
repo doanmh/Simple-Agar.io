@@ -94,10 +94,39 @@ function QuadTree (lvl, boundaries) {
         return list;
     }
 
+    var retrieveFoodAndPlayer = function(foodArr, playerArr, obj) {
+        if (obj.x - obj.radius < bound.x + bound.width && obj.x + obj.radius > bound.x
+            && obj.y - obj.radius < bound.y + bound.height && obj.y + obj.radius > bound.y) {
+
+            for (var o in objects) {
+                if (objects[o] !== obj) {
+                    if (objects[o] instanceof Player) {
+                        playerArr.push(objects[o])
+                    } else if (objects[o] instanceof Food) {
+                        foodArr.push(objects[o]);
+                    }
+                }
+            }
+
+            if (nodes.length) {
+                nodes[0].retrieve2(foodArr, playerArr, obj);
+                nodes[1].retrieve2(foodArr, playerArr, obj);
+                nodes[2].retrieve2(foodArr, playerArr, obj);
+                nodes[3].retrieve2(foodArr, playerArr, obj);
+            }
+        }
+
+        return {
+            foodArray: foodArr,
+            playerArray: playerArr
+        }
+    }
+
     return {
         clear: clear,
         insert: insert,
-        retrieve: retrieve
+        retrieve: retrieve,
+        retrieveFoodAndPlayer: retrieveFoodAndPlayer
     }
 }
 

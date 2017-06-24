@@ -9139,8 +9139,8 @@ var app =
 /***/function (module, exports) {
 
 	var config = {
-		"gameWidth": 5000,
-		"gameHeight": 5000,
+		"gameWidth": 500,
+		"gameHeight": 500,
 		"playerBaseSpeed": 6
 	};
 

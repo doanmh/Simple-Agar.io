@@ -6,6 +6,7 @@ var SAT = require('sat');
 
 var QuadTree = require('../lib/quadtree.js');
 var config = require('../config/config.js');
+var Entity = require('../models/entity.js');
 var Player = require('../models/player.js');
 var Food = require('../models/food.js');
 var util = require('../lib/util.js')();
@@ -24,25 +25,10 @@ var C = SAT.Circle;
 var GOLDEN = 0.618033988749895;
 
 var tree = QuadTree(0, {x: 0, y: 0, width: gameWidth, height: gameHeight});
-var foodTree = QuadTree(0, {x: 0, y: 0, width: gameWidth, height: gameHeight});
 
 // Setup Sockets
 io.on('connection', function(socket) {
     console.log("A user connected!");
-    
-    // var currentPlayer = {
-    //     id: socket.id,
-    //     x: Math.floor((Math.random() * gameWidth) + 1),
-    //     y: Math.floor((Math.random() * gameHeight) + 1),
-    //     radius: 20,
-    //     mass: 10,
-    //     hue: Math.round(util.randGolden()*360),
-    //     speed: 6,
-    //     target: {
-    //         x:0,
-    //         y:0
-    //     }
-    // }
 
     var currentPlayer = new Player(socket.id, 0, 0, 20, 10, true, 0, 0, {x: 0, y: 0});
 
@@ -98,18 +84,18 @@ var updatePlayer = function(player) {
     movePlayer(player);
     
     var playerCircle = new C(new V(player.x, player.y), player.radius);
+    var camera = new Entity(player.x, player.y, player.screenWidth > player.screenHeight ? player.screenWidth/2 : player.screenHeight/2);
 
-    foodTree.clear();
-    food.forEach(foodTree.insert);
-
-    var camera = {
-        x: player.x,
-        y: player.y,
-        radius: player.screenWidth > player.screenHeight ? player.screenWidth/2 : player.screenHeight/2
-    }
+    tree.clear();
+    food.forEach(tree.insert);
+    players.forEach(tree.insert);
 
     var foodToRender = [];
-    foodToRender = foodTree.retrieve([], camera);
+    var playerCollisions = [];
+
+    var entitiesToRender = tree.retrieveFoodAndPlayer([], [], camera, Player, Food);
+    foodToRender = entitiesToRender.foodArray;
+    playerCollisions = entitiesToRender.playerArray;
 
     for (var i = 0; i < foodToRender.length; i++) {
         var f = foodToRender[i];
@@ -121,13 +107,6 @@ var updatePlayer = function(player) {
     }
 
     sockets[player.id].emit('updateFood', foodToRender);
-    
-    tree.clear();
-    players.forEach(tree.insert);
-
-    var playerCollisions = [];
-
-    playerCollisions = tree.retrieve([], player);
 
     for (var i = 0; i < playerCollisions.length; i++) {
         var other = playerCollisions[i];
@@ -147,7 +126,7 @@ var updatePlayer = function(player) {
         }
     }
 
-    sockets[player.id].emit('updatePlayer', players, player);
+    sockets[player.id].emit('updatePlayer', playerCollisions, player);
 }
 
 var movePlayer = function(player) {
@@ -188,7 +167,7 @@ var movePlayer = function(player) {
 
 // Helper function
 var balanceFood = function() {
-    var foodToAdd = 100 - food.length;
+    var foodToAdd = 20 - food.length;
     for (var i = 0; i < foodToAdd; i++) {
         food.push(new Food(0, 0, 7, 1, true));
     }
