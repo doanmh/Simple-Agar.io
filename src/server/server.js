@@ -167,7 +167,7 @@ var movePlayer = function(player) {
 
 // Helper function
 var balanceFood = function() {
-    var foodToAdd = 20 - food.length;
+    var foodToAdd = config.totalFood - food.length;
     for (var i = 0; i < foodToAdd; i++) {
         food.push(new Food(0, 0, 7, 1, true));
     }
