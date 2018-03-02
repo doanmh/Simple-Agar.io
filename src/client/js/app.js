@@ -1,6 +1,7 @@
 var io = require('socket.io-client');
 
 var Player = require('../../models/player.js');
+var util = require('../../lib/util.js')();
 
 var cv = document.getElementById("canvas1");
 var ctx = cv.getContext("2d");
@@ -16,7 +17,14 @@ var socket;
 var players = [];
 var food = [];
 
+var pendingInputs = [];
+
+var inputSequenceNum = 0;
+var lastProcessedInput = 0;
+var tempLastProcessedInput = 0;
+
 var player = new Player(-1, 0, 0, 20, 10, false, window.innerWidth, window.innerHeight, {x: 0, y: 0});
+var tempPlayer;
 
 //Set up mouse events
 document.onmousemove = function(event) {
@@ -61,12 +69,13 @@ var setupSocket = function(socket) {
     });
 
     socket.on('welcome', function(playerSetting) {
-        player = playerSetting;
+        player = Object.assign({}, playerSetting);
     });
 
-    socket.on('updatePlayer', function(playerArray, currentPlayer) {
-        players = playerArray;
-        player = currentPlayer;
+    socket.on('updatePlayer', function(data) {
+        players = data.playerArray;
+        tempPlayer = data.player;
+        tempLastProcessedInput = data.last_input;
     })
 
     socket.on('updateFood', function(foodArray) {
@@ -78,6 +87,40 @@ var gameLoop = function() {
     var target = {};
 
     ctx.clearRect(0, 0, cv.width, cv.height)
+
+    player = Object.assign({}, tempPlayer);
+    lastProcessedInput = tempLastProcessedInput;
+
+    var j = 0;
+    while (j < pendingInputs.length) {
+        var input = pendingInputs[j];
+        if (input.seq <= lastProcessedInput) {
+            pendingInputs.splice(j, 1);
+        } else {
+            applyInput(input);
+            j++;
+        }
+    }
+
+    if (isMouseIn) {
+        target = {
+            seq: inputSequenceNum,
+            x: mouseX,
+            y: mouseY
+        }
+    } else {
+        target = {
+            seq: inputSequenceNum,
+            x: screenWidth/2,
+            y: screenHeight/2
+        }
+    }
+
+    inputSequenceNum++;
+
+    pendingInputs.push(target);
+
+    applyInput(target);
     
     drawGrid();
 
@@ -92,18 +135,6 @@ var gameLoop = function() {
     }
 
     drawEntities(player);
-
-    if (isMouseIn) {
-        target = {
-            x: mouseX,
-            y: mouseY
-        }
-    } else {
-        target = {
-            x: screenWidth/2,
-            y: screenHeight/2
-        }
-    }
 
     socket.emit('updatePlayerTarget', target);
 }
@@ -126,6 +157,42 @@ var animloop = function() {
 var startGame = function() {
     initFrame(cv);
     animloop();
+}
+
+var applyInput = function(input) {
+    var xdiff, ydiff;
+    var targetX = input.x - player.screenWidth/2;
+    var targetY = input.y - player.screenHeight/2;
+    var deg = Math.atan2(targetY, targetX);
+    var slowdown = util.log(player.mass, 5) - util.log(10, 5) + 1;
+    
+    if (Math.abs(targetX) == 0 && Math.abs(targetY) ==0) {
+        xdiff = 0;
+        ydiff = 0;
+    } else if (Math.abs(targetX) <= player.radius && Math.abs(targetY) <= player.radius) {
+        // if mouse inside player then slow down
+        xdiff = player.speed * Math.cos(deg)/slowdown*1.1*Math.abs(targetX)/player.radius;
+        ydiff = player.speed * Math.sin(deg)/slowdown*1.1*Math.abs(targetY)/player.radius;
+    } else {
+        xdiff = player.speed * Math.cos(deg)/slowdown;
+        ydiff = player.speed * Math.sin(deg)/slowdown;
+    }
+    
+    if (!isNaN(xdiff)) {
+        if (player.x + xdiff <=0 || player.x + xdiff >= gameWidth) {
+            player.x += 0;
+        } else {
+            player.x += xdiff;
+        } 
+    }
+    
+    if (!isNaN(ydiff)) {
+        if (player.y + ydiff <= 0 || player.y + ydiff >= gameHeight) {
+            player.y += 0;
+        } else {
+            player.y += ydiff;
+        }
+    }
 }
 
 var drawEntities = function(p) {

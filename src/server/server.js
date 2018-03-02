@@ -19,6 +19,7 @@ var gameHeight = config.gameHeight
 var players = [];
 var food = [];
 var sockets = {};
+var lastProcessedInput = [];
 
 var V = SAT.Vector;
 var C = SAT.Circle;
@@ -58,6 +59,7 @@ io.on('connection', function(socket) {
   
     socket.on('updatePlayerTarget', function(target) {
         if (target.x !== currentPlayer.x || target.y !== currentPlayer.y) {
+            lastProcessedInput[currentPlayer.id] = target.seq;
             currentPlayer.target = target;
         }
     });
@@ -126,7 +128,7 @@ var updatePlayer = function(player) {
         }
     }
 
-    sockets[player.id].emit('updatePlayer', playerCollisions, player);
+    sockets[player.id].emit('updatePlayer', {last_input: lastProcessedInput[player.id], playerArray: playerCollisions, player: player});
 }
 
 var movePlayer = function(player) {
