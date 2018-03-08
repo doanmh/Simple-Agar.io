@@ -12,6 +12,7 @@ class Player extends Entity {
         this.screenWidth = screenWidth;
         this.screenHeight = screenHeight;
         this.target = target;
+        this.positionBuffer = [];
     }
 }
 

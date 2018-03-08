@@ -14,7 +14,10 @@ var isMouseIn = false;
 var mouseX, mouseY;
 var socket;
 
+var allPlayers = {};
+
 var players = [];
+var tempPlayers = [];
 var food = [];
 
 var pendingInputs = [];
@@ -60,6 +63,7 @@ window.onresize = function() {
 var setupSocket = function(socket) {
 
     socket.on('disconnect', function() {
+        console.log("disconnected");
         socket.close();
     });
 
@@ -73,7 +77,7 @@ var setupSocket = function(socket) {
     });
 
     socket.on('updatePlayer', function(data) {
-        players = data.playerArray;
+        tempPlayers = data.playerArray;
         tempPlayer = data.player;
         tempLastProcessedInput = data.last_input;
     })
@@ -86,21 +90,9 @@ var setupSocket = function(socket) {
 var gameLoop = function() {
     var target = {};
 
-    ctx.clearRect(0, 0, cv.width, cv.height)
+    ctx.clearRect(0, 0, cv.width, cv.height);
 
-    player = Object.assign({}, tempPlayer);
-    lastProcessedInput = tempLastProcessedInput;
-
-    var j = 0;
-    while (j < pendingInputs.length) {
-        var input = pendingInputs[j];
-        if (input.seq <= lastProcessedInput) {
-            pendingInputs.splice(j, 1);
-        } else {
-            applyInput(input);
-            j++;
-        }
-    }
+    processServerMessage();
 
     if (isMouseIn) {
         target = {
@@ -128,9 +120,11 @@ var gameLoop = function() {
         drawEntities(food[i]);
     }
 
-    for (var i = 0; i < players.length; i++) {
-        if (player.id !== players[i].id) {
-            drawEntities(players[i]);
+    interpolateEntity();
+
+    for (var key in allPlayers) {
+        if (player.id !== allPlayers[key].id) {
+            drawEntities(allPlayers[key]);
         }
     }
 
@@ -191,6 +185,91 @@ var applyInput = function(input) {
             player.y += 0;
         } else {
             player.y += ydiff;
+        }
+    }
+}
+
+var processServerMessage = function() {
+    players = tempPlayers.splice(0);
+    player = Object.assign({}, tempPlayer);
+    lastProcessedInput = tempLastProcessedInput;
+
+    var j = 0;
+    while (j < pendingInputs.length) {
+        var input = pendingInputs[j];
+        if (input.seq <= lastProcessedInput) {
+            pendingInputs.splice(j, 1);
+        } else {
+            applyInput(input);
+            j++;
+        }
+    }
+    
+    if (players.length != 0) {
+        for (var key in allPlayers) {
+            var found = false;
+            for (var i = 0; i < players.length; i++) {
+                if (allPlayers[key].id == players[i].id) {
+                    found = true;
+                    break;
+                }
+            }
+            if (!found) {
+                delete allPlayers[key];
+            }
+        }
+    }
+
+    for (var i = 0; i < players.length; i++) {
+        var p = players[i];
+        if (p.id == player.id) {
+            continue;
+        }
+        if (!allPlayers[p.id]) {
+            var newPlayer = Object.assign({}, p);
+            newPlayer.positionBuffer = [];
+            allPlayers[p.id] = newPlayer;
+        }
+
+        var entity = allPlayers[p.id];
+        entity.radius = p.radius;
+
+        if (p.id == player.id) {
+            continue;
+        } else {
+            var timestamp = new Date();
+            entity.positionBuffer.push([timestamp, p]);
+        }
+    }
+}
+
+var interpolateEntity = function() {
+    var now = new Date();
+    var renderTimestamp = now - (1000.0 / 60);
+
+    for (var key in allPlayers) {
+        var entity = allPlayers[key];
+        
+        if (entity.id == player.id) {
+            continue;
+        }
+
+        var buffer = entity.positionBuffer;
+
+        while (buffer.length >= 2 && buffer[1][0] <= renderTimestamp) {
+            buffer.shift();
+        }
+
+        if (buffer.length >= 2 && buffer[0][0] <= renderTimestamp && renderTimestamp <= buffer[1][0]) {
+            var x0 = buffer[0][1].x;
+            var x1 = buffer[1][1].x;
+            var y0 = buffer[0][1].y;
+            var y1 = buffer[1][1].y;
+            var t0 = buffer[0][0];
+            var t1 = buffer[1][0];
+
+            entity.x = x0 + (x1 - x0) * (renderTimestamp - t0) / (t1 - t0);
+            entity.y = y0 + (y1 - y0) * (renderTimestamp - t0) / (t1 - t0);
         }
     }
 }

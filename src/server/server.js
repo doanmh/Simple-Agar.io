@@ -36,6 +36,7 @@ io.on('connection', function(socket) {
     console.log(currentPlayer.x + " " + currentPlayer.y);
 
     socket.on('disconnect', function() {
+        console.log("bye " + currentPlayer);
         var index = players.indexOf(currentPlayer);
         if (index > -1) {
             var index = players.splice(index, 1);
@@ -54,6 +55,7 @@ io.on('connection', function(socket) {
             gameHeight: gameHeight
         });
         socket.emit('welcome', currentPlayer);
+        console.log("Welcome: " + currentPlayer.id);
         console.log("Total: " + players.length);
     });
   
@@ -118,11 +120,13 @@ var updatePlayer = function(player) {
                 if (player.mass > 1.1*other.mass ) {
                     player.mass += other.mass;
                     player.radius += 0.5*other.mass;
-                    sockets[other.id].emit('disconnect');
+                    // sockets[other.id].emit('disconnect');
+                    sockets[other.id].disconnect();
                 } else if (other.mass > 1.1*player.mass) {
                     other.mass += player.mass;
                     other.radius += 0.5*player.mass;
-                    sockets[player.id].emit('disconnect');
+                    // sockets[player.id].emit('disconnect');
+                    sockets[player.id].disconnect();
                 }
             } 
         }
